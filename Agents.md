@@ -21,4 +21,3 @@
 - Don't add XML summaries and trivial comments (this is an internal project).
 - Always place private classes at the bottom of parent classes.
 - Always make methods that have the async keyword use the `Async` suffix (example: correct `async Task SaveAsync`, wrong `async Task Save`).
-- Always use inline CSS
