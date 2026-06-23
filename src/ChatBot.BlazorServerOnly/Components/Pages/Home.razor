@@ -31,7 +31,8 @@
                   rows="3"
                   placeholder="Type a message..."
                   aria-label="Message input"
+                  onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('send-message-button').click(); }"
                   style="flex: 1 1 auto; min-width: 0; min-height: 72px; max-height: 180px; resize: vertical; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 14px; color: #111827; background: #ffffff; font: inherit; line-height: 1.4; outline-color: #2563eb;"></textarea>
-        <button type="submit" style="flex: 0 0 auto; height: 48px; min-width: 88px; border: 0; border-radius: 12px; padding: 0 18px; background: #111827; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer;">Send</button>
+        <button id="send-message-button" type="submit" style="align-self: stretch; flex: 0 0 auto; min-width: 88px; border: 0; border-radius: 12px; padding: 0 18px; background: #111827; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer;">Send</button>
     </form>
 </main>
