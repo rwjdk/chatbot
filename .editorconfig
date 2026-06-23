@@ -1,0 +1,104 @@
+[*]
+# Enforce CRLF line endings for all files matched by this section.
+end_of_line = crlf
+
+[**/AGENTS.md]
+# Store AGENTS.md as UTF-8 with BOM so Unicode box-drawing characters are preserved.
+charset = utf-8-bom
+
+[*.{cs,vb}]
+
+# Link naming rule `async_methods_end_with_async` to the symbol set `async_methods`.
+dotnet_naming_rule.async_methods_end_with_async.symbols = async_methods
+# Link naming rule `async_methods_end_with_async` to the style `end_with_async`.
+dotnet_naming_rule.async_methods_end_with_async.style = end_with_async
+# Treat violations of this naming rule as build errors.
+dotnet_naming_rule.async_methods_end_with_async.severity = error
+
+# Apply the symbol set `async_methods` to methods.
+dotnet_naming_symbols.async_methods.applicable_kinds = method
+# Include all method access levels in the symbol set.
+dotnet_naming_symbols.async_methods.applicable_accessibilities = public, internal, protected, private
+# Restrict this symbol set to methods marked with the `async` modifier.
+dotnet_naming_symbols.async_methods.required_modifiers = async
+
+# Require the `Async` suffix for the style used by async methods.
+dotnet_naming_style.end_with_async.required_suffix = Async
+# Ensure method names remain PascalCase while applying the suffix.
+dotnet_naming_style.end_with_async.capitalization = pascal_case
+
+# Escalate naming violations (including custom naming rules) to errors.
+dotnet_diagnostic.IDE1006.severity = error
+
+# -------------------------------
+# Code style severity categories
+# -------------------------------
+
+# Disable file-header enforcement (missing/extra headers are allowed).
+dotnet_diagnostic.IDE0073.severity = none
+
+# Disable "Seal internal types" suggestion to match project convention.
+dotnet_diagnostic.CA1852.severity = none
+
+# -------------------------------
+# C# code style preferences
+# -------------------------------
+# Require braces for all control-flow blocks, including single-line blocks.
+csharp_prefer_braces = true:error
+
+# Require explicit types instead of `var` for built-in types.
+csharp_style_var_for_built_in_types = false:error
+# Require explicit types instead of `var` when the type is obvious from the right side.
+csharp_style_var_when_type_is_apparent = false:error
+# Require explicit types instead of `var` in all other cases.
+csharp_style_var_elsewhere = false:error
+# Escalate "use explicit type instead of var" diagnostics to errors.
+dotnet_diagnostic.IDE0008.severity = error
+
+# Require target-typed `new()` when the type can be inferred.
+csharp_style_implicit_object_creation = true:error
+# Escalate object-creation style violations to errors.
+dotnet_diagnostic.IDE0090.severity = error
+
+# Require collection expressions (`[]`) instead of legacy collection construction patterns where applicable.
+csharp_style_prefer_collection_expression = true:error
+# Escalate collection-expression style violations to errors.
+dotnet_diagnostic.IDE0300.severity = error
+
+# Prefer auto-properties when a backing field is unnecessary.
+dotnet_style_prefer_auto_properties = true:suggestion
+# Keep auto-property conversion at suggestion level to avoid forcing immediate broad refactors.
+dotnet_diagnostic.IDE0032.severity = suggestion
+
+# Prefer primary constructors when the language/compiler supports conversion.
+csharp_style_prefer_primary_constructors = true:error
+
+# Do not require `this.` for fields; using `this.` is considered unnecessary style noise.
+dotnet_style_qualification_for_field = false:error
+# Do not require `this.` for properties.
+dotnet_style_qualification_for_property = false:error
+# Do not require `this.` for methods.
+dotnet_style_qualification_for_method = false:error
+# Do not require `this.` for events.
+dotnet_style_qualification_for_event = false:error
+
+# Require namespaces to match the folder structure.
+dotnet_style_namespace_match_folder = true:error
+# Escalate namespace-folder mismatch diagnostics to errors.
+dotnet_diagnostic.IDE0130.severity = error
+
+# Formatting preference: keep single-line blocks on one line when possible (no explicit diagnostic severity configured).
+csharp_preserve_single_line_blocks = true
+# Formatting preference: keep single-line statements on one line when possible (no explicit diagnostic severity configured).
+csharp_preserve_single_line_statements = true
+
+# ReSharper inspection: suggest converting eligible properties to auto-properties.
+resharper_convert_to_auto_property_highlighting = error
+# ReSharper inspection: detect duplicated sequential `if` branches.
+resharper_duplicated_sequential_if_bodies_highlighting = error
+# ReSharper inspection: suggest merging compatible checks into logical patterns (`or` / `and`).
+resharper_merge_into_logical_pattern_highlighting = error
+# ReSharper style: when type is not evident, require explicit type in `new` expressions.
+resharper_object_creation_when_type_not_evident = error
+# ReSharper inspection: enforce the preferred object-creation style for non-evident types.
+resharper_arrange_object_creation_when_type_not_evident_highlighting = error
