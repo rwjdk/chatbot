@@ -1,4 +1,5 @@
 using AgentFrameworkToolkit.AzureOpenAI;
+using AgentFrameworkToolkit.Tools.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,11 +24,20 @@ public static class Extensions
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        string? azureOpenAIEndpoint = builder.Configuration[SecretKeys.azureopenaiendpoint];
-        string? azureOpenAIKey = builder.Configuration[SecretKeys.azureopenaikey];
+        string? azureOpenAIEndpoint = builder.Configuration[SecretKeys.AzureOpenAIEndpoint];
+        string? azureOpenAIKey = builder.Configuration[SecretKeys.AzureOpenAIKey];
         if (azureOpenAIEndpoint != null && azureOpenAIKey != null)
         {
             builder.Services.AddAzureOpenAIAgentFactory(azureOpenAIEndpoint, azureOpenAIKey);
+        }
+
+        string? weatherServiceKey = builder.Configuration[SecretKeys.WeatherServiceKey];
+        if (weatherServiceKey != null)
+        {
+            builder.Services.AddSingleton(new OpenWeatherMapOptions
+            {
+                ApiKey = weatherServiceKey
+            });
         }
 
         builder.ConfigureOpenTelemetry();

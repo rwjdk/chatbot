@@ -1,4 +1,5 @@
 @page "/"
+@using ChatBot.BlazorServerOnly.Extensions
 @using Microsoft.Agents.AI
 @using Microsoft.Extensions.AI
 
@@ -9,9 +10,9 @@
         <button class="new-chat-button" type="button" @onclick="NewChatAsync">New Chat</button>
 
         <div class="conversation-list">
-            @foreach (AgentSession conversation in _conversations)
+            @foreach (AgentSession session in _previousSessions)
             {
-                <button class="conversation-button" type="button" @onclick="() => { _session = conversation; }">@(conversation.StateBag.GetValue<string>("title"))</button>
+                <button class="conversation-button" type="button" @onclick="() => SwitchSession(session)">@(session.StateBag.GetValue<string>("title"))</button>
             }
         </div>
     </aside>
@@ -20,17 +21,101 @@
         <section class="chat-messages">
             <div class="message-list">
 
-                @if (_session?.TryGetInMemoryChatHistory(out List<ChatMessage>? messages) == true)
+                @if (_currentSession?.TryGetInMemoryChatHistory(out List<ChatMessage>? messages) == true)
                 {
                     @foreach (ChatMessage message in messages)
                     {
-                        bool isUser = message.Role == ChatRole.User;
+                        if (message.Role == ChatRole.User)
+                        {
+                            <article class="message-row from-user">
+                                <div class="message-bubble">
+                                    <p class="message-text">@message.Text</p>
+                                </div>
+                            </article>
+                        }
+                        else if (message.Role == ChatRole.Assistant)
+                        {
+                            foreach (AIContent content in message.Contents)
+                            {
+                                if (content is FunctionCallContent functionCallContent)
+                                {
+                                    <article class="message-row from-assistant">
+                                        <p class="meta-info">Tool Call Request: @functionCallContent.AsDisplayString()</p>
+                                    </article>
+                                }
+                                else if (content is TextReasoningContent textReasoningContent && !string.IsNullOrWhiteSpace(textReasoningContent.Text))
+                                {
+                                    <article class="message-row from-assistant">
+                                        <p class="meta-info">Thoughts: @textReasoningContent.Text</p>
+                                    </article>
+                                }
+                            }
 
-                        <article class="message-row @(isUser ? "from-user" : "from-assistant")">
+                            @if (!string.IsNullOrWhiteSpace(message.Text))
+                            {
+                                <article class="message-row from-assistant">
+                                    <div class="message-bubble">
+                                        <p class="message-text">@message.Text</p>
+                                    </div>
+                                </article>
+                            }
+                        }
+                        else if (message.Role == ChatRole.Tool)
+                        {
+                            @foreach (AIContent content in message.Contents)
+                            {
+                                if (content is FunctionResultContent functionResultContent)
+                                {
+                                    <article class="message-row from-assistant">
+                                        <p class="meta-info">Tool Call Result: @functionResultContent.AsDisplayString()</p>
+                                    </article>
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+                @if (_currentPrompt != null)
+                {
+                    <article class="message-row from-user">
+                        <div class="message-bubble">
+                            <p class="message-text">@_currentPrompt</p>
+                        </div>
+                    </article>
+
+                    @if (!_streaming)
+                    {
+                        <article class="message-row from-assistant">
                             <div class="message-bubble">
-                                <p class="message-text">@message.Text</p>
+                                <p class="message-text">...</p>
                             </div>
                         </article>
+                    }
+                }
+
+                @if (_streamedReasoning != null)
+                {
+                    <article class="message-row from-assistant">
+                        <p class="meta-info">Thoughts: @_streamedReasoning</p>
+                    </article>
+                }
+
+                @foreach (AIContent content in _streamedContent)
+                {
+                    switch (content)
+                    {
+                        case FunctionCallContent functionCallContent:
+                            <article class="message-row from-assistant">
+                                <p class="meta-info">Tool Call Request: @functionCallContent.AsDisplayString()</p>
+                            </article>
+
+                            break;
+                        case FunctionResultContent functionResultContent:
+                            <article class="message-row from-assistant">
+                                <p class="meta-info">Tool Call Result: @functionResultContent.AsDisplayString()</p>
+                            </article>
+                            break;
                     }
                 }
 
@@ -62,5 +147,15 @@
             <input class="option-checkbox" type="checkbox" @bind="_streaming" />
             <span>Streaming</span>
         </label>
+
+        @if (_usageDetails != null)
+        {
+            <br />
+            <h2 class="options-title">Stats (for last turn)</h2>
+
+            <p class="meta-info" style="font-size: 11px">Input tokens: @_usageDetails.InputTokenCount</p>
+            <p class="meta-info" style="font-size: 11px">Output tokens: @_usageDetails.OutputTokenCount</p>
+            <p class="meta-info" style="font-size: 11px">Reasoning tokens: @_usageDetails.ReasoningTokenCount</p>
+        }
     </aside>
 </main>

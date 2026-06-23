@@ -2,6 +2,7 @@ namespace ServiceDefaults;
 
 public static class SecretKeys
 {
-    public const string azureopenaiendpoint = "AzureOpenAIEndpoint";
-    public const string azureopenaikey = "AzureOpenAIKey";
+    public const string AzureOpenAIEndpoint = "AzureOpenAIEndpoint";
+    public const string AzureOpenAIKey = "AzureOpenAIKey";
+    public const string WeatherServiceKey = "WeatherServiceKey";
 }

@@ -4,9 +4,9 @@ using Microsoft.Agents.AI;
 
 namespace ChatBot.BlazorServerOnly;
 
-public class ChatMessageConversationService
+public class StoredSessionsService
 {
-    public async Task<List<AgentSession>> LoadConversationsAsync(AIAgent agent)
+    public async Task<List<AgentSession>> LoadPreviousSessionsAsync(AIAgent agent)
     {
         List<AgentSession> sessions = [];
         string conversationFolder = GetConversationFolder();
@@ -19,7 +19,7 @@ public class ChatMessageConversationService
         return sessions;
     }
 
-    public async Task StoreConversationAsync(AIAgent agent, AgentSession session)
+    public async Task StoreSessionAsync(AIAgent agent, AgentSession session)
     {
         string conversationFolder = GetConversationFolder();
         string id = session.GetOrGenerateId();

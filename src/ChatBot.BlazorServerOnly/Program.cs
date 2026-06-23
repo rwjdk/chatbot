@@ -5,7 +5,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults(); //From Aspire Service Defaults
 
-builder.Services.AddSingleton<ChatMessageConversationService>();
+builder.Services.AddSingleton<StoredSessionsService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

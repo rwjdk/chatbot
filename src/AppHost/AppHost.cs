@@ -5,11 +5,13 @@ IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(ar
 
 
 
-IResourceBuilder<ParameterResource> azureOpenAiEndpoint = builder.AddParameter(SecretKeys.azureopenaiendpoint, secret: false);
-IResourceBuilder<ParameterResource> azureOpenAiKey = builder.AddParameter(SecretKeys.azureopenaikey, secret: true);
+IResourceBuilder<ParameterResource> azureOpenAiEndpoint = builder.AddParameter(SecretKeys.AzureOpenAIEndpoint, secret: false);
+IResourceBuilder<ParameterResource> azureOpenAiKey = builder.AddParameter(SecretKeys.AzureOpenAIKey, secret: true);
+IResourceBuilder<ParameterResource> weatherServiceKey = builder.AddParameter(SecretKeys.WeatherServiceKey, secret: true);
 
 builder.AddProject<ChatBot_BlazorServerOnly>("blazor-server-only")
-    .WithEnvironment(SecretKeys.azureopenaiendpoint, azureOpenAiEndpoint)
-    .WithEnvironment(SecretKeys.azureopenaikey, azureOpenAiKey);
+    .WithEnvironment(SecretKeys.WeatherServiceKey, weatherServiceKey)
+    .WithEnvironment(SecretKeys.AzureOpenAIEndpoint, azureOpenAiEndpoint)
+    .WithEnvironment(SecretKeys.AzureOpenAIKey, azureOpenAiKey);
 
 builder.Build().Run();
