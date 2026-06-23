@@ -1,8 +1,7 @@
-using AgentFrameworkToolkit;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
-using ChatBot.BlazorServerOnly.Extensions;
+using ChatBot.BlazorServerOnly.Models;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -12,7 +11,7 @@ namespace ChatBot.BlazorServerOnly.Components.Pages;
 [UsedImplicitly]
 public partial class Home(
     AzureOpenAIAgentFactory azureOpenAIAgentFactory,
-    StoredSessionsService storedSessionsService,
+    StoredConversationsService storedConversationsService,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
     private string? _input;
@@ -21,10 +20,8 @@ public partial class Home(
     private string? _streamedReasoning;
     private List<AIContent> _streamedContent = [];
     private AzureOpenAIAgent? _agent;
-    private AgentSession? _currentSession;
-    private List<AgentSession> _previousSessions = [];
-    private string? _currentPrompt;
-    private UsageDetails? _usageDetails;
+    private Conversation? _currentConversation;
+    private List<Conversation> _previousConversations = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -36,24 +33,19 @@ public partial class Home(
             ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
             Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)]
         });
-        _previousSessions = await storedSessionsService.LoadPreviousSessionsAsync(_agent);
-        _currentSession = await _agent.CreateSessionAsync();
+        _previousConversations = await storedConversationsService.LoadPreviousConversationsAsync();
+        _currentConversation = Conversation.NewConversation();
     }
 
-    private async Task NewChatAsync()
+    private void NewChat()
     {
-        if (_agent == null)
-        {
-            return;
-        }
-
-        _currentSession = await _agent.CreateSessionAsync();
-        ResetTurnValues();
+        _currentConversation = Conversation.NewConversation();
+        ResetMidStreamingValues();
     }
 
     private async Task SendMessageAsync()
     {
-        if (_agent == null || _currentSession == null)
+        if (_agent == null || _currentConversation == null)
         {
             return;
         }
@@ -65,23 +57,23 @@ public partial class Home(
             return;
         }
 
-        ResetTurnValues();
-        bool newSession = await _currentSession.GenerateTitleForSessionIfNeededAsync(
-            titleGenerationAgent: azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano),
-            input
-        );
-        if (newSession)
+        ResetMidStreamingValues();
+
+        if (_currentConversation.MissingTitle)
         {
-            _previousSessions.Add(_currentSession);
+            AzureOpenAIAgent titleGenerationAgent = azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano);
+            AgentResponse<string> response = await titleGenerationAgent.RunAsync<string>($"Given the following message: '{input}' generate a max 25 char long title for this question");
+            _currentConversation.Title = response.Result;
+            _previousConversations.Add(_currentConversation);
         }
 
-        _currentPrompt = input;
+        _currentConversation.AddUserMessage(input);
         await InvokeAsync(StateHasChanged);
 
         if (_streaming)
         {
             List<AgentResponseUpdate> updates = [];
-            await foreach (AgentResponseUpdate update in _agent.RunStreamingAsync(input, _currentSession))
+            await foreach (AgentResponseUpdate update in _agent.RunStreamingAsync(_currentConversation.GetRawMessages()))
             {
                 updates.Add(update);
                 foreach (AIContent content in update.Contents)
@@ -100,33 +92,31 @@ public partial class Home(
                 await InvokeAsync(StateHasChanged);
             }
 
-            ResetTurnValues();
-            _usageDetails = updates.ToAgentResponse().Usage;
+            ResetMidStreamingValues();
+            AgentResponse response = updates.ToAgentResponse();
+            _currentConversation.AddDataFromAgentResponse(response);
         }
         else
         {
-            AgentResponse response = await _agent.RunAsync(input, _currentSession);
-            _usageDetails = response.Usage;
+            AgentResponse response = await _agent.RunAsync(_currentConversation.GetRawMessages());
+            _currentConversation.AddDataFromAgentResponse(response);
         }
-
-        _currentPrompt = null;
         await InvokeAsync(StateHasChanged);
 
-        await storedSessionsService.StoreSessionAsync(_agent, _currentSession);
+        await storedConversationsService.StoreSessionAsync(_currentConversation);
     }
 
-    private void ResetTurnValues()
+    private void ResetMidStreamingValues()
     {
         _input = null;
         _streamedReasoning = null;
         _streamedResponse = null;
         _streamedContent = [];
-        _usageDetails = null;
     }
 
-    private void SwitchSession(AgentSession session)
+    private void SwitchSession(Conversation conversation)
     {
-        _currentSession = session;
-        ResetTurnValues();
+        _currentConversation = conversation;
+        ResetMidStreamingValues();
     }
 }

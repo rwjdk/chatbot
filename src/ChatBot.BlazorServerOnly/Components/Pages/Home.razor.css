@@ -99,7 +99,9 @@
 }
 
 .meta-info {
-    color: gray
+    color: gray;
+    font-size: 11px;
+    font-style: italic;
 }
 
 .from-user .message-bubble {
