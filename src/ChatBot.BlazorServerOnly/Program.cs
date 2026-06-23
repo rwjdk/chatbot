@@ -1,8 +1,11 @@
+using ChatBot.BlazorServerOnly;
 using ChatBot.BlazorServerOnly.Components;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults(); //From Aspire Service Defaults
+
+builder.Services.AddSingleton<ChatMessageConversationService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

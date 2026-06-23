@@ -9,9 +9,9 @@
         <button class="new-chat-button" type="button" @onclick="NewChatAsync">New Chat</button>
 
         <div class="conversation-list">
-            @foreach (string conversation in _conversations)
+            @foreach (AgentSession conversation in _conversations)
             {
-                <button class="conversation-button" type="button">@conversation</button>
+                <button class="conversation-button" type="button" @onclick="() => { _session = conversation; }">@(conversation.StateBag.GetValue<string>("title"))</button>
             }
         </div>
     </aside>

@@ -1,19 +1,20 @@
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
+using ChatBot.BlazorServerOnly.Extensions;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 
 namespace ChatBot.BlazorServerOnly.Components.Pages;
 
 [UsedImplicitly]
-public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory)
+public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory, ChatMessageConversationService chatMessageConversationService)
 {
     private string? _input;
     private bool _streaming;
     private string? _streamedResponse;
-    private readonly List<string> _conversations = ["Current chat"];
     private AzureOpenAIAgent? _agent;
     private AgentSession? _session;
+    private List<AgentSession> _conversations = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -23,6 +24,8 @@ public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory)
             ReasoningEffort = OpenAIReasoningEffort.Low,
             ChatHistoryProvider = new InMemoryChatHistoryProvider(),
         });
+        _conversations = await chatMessageConversationService.LoadConversationsAsync(_agent);
+
         _session = await _agent.CreateSessionAsync();
     }
 
@@ -36,19 +39,18 @@ public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory)
         _session = await _agent.CreateSessionAsync();
         _input = null;
         _streamedResponse = null;
-        _conversations.Insert(0, $"New chat {_conversations.Count + 1}");
     }
 
     private async Task SendMessageAsync()
     {
-        if (_agent == null)
+        if (_agent == null || _session == null)
         {
             return;
         }
 
-        string? content = _input?.Trim();
+        string? input = _input?.Trim();
 
-        if (string.IsNullOrWhiteSpace(content))
+        if (string.IsNullOrWhiteSpace(input))
         {
             return;
         }
@@ -56,9 +58,18 @@ public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory)
         _input = null;
         _streamedResponse = null;
 
+        bool newSession = await _session.GenerateTitleForSessionIfNeededAsync(
+            titleGenerationAgent: azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano),
+            input
+        );
+        if (newSession)
+        {
+            _conversations.Add(_session);
+        }
+
         if (_streaming)
         {
-            await foreach (AgentResponseUpdate update in _agent.RunStreamingAsync(content, _session))
+            await foreach (AgentResponseUpdate update in _agent.RunStreamingAsync(input, _session))
             {
                 _streamedResponse += update.Text;
                 await InvokeAsync(StateHasChanged);
@@ -68,9 +79,11 @@ public partial class Home(AzureOpenAIAgentFactory azureOpenAIAgentFactory)
         }
         else
         {
-            await _agent.RunAsync(content, _session);
+            await _agent.RunAsync(input, _session);
         }
 
         await InvokeAsync(StateHasChanged);
+
+        await chatMessageConversationService.StoreConversationAsync(_agent, _session);
     }
 }
