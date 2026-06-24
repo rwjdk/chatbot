@@ -1,4 +1,5 @@
-﻿using Microsoft.Agents.AI;
+﻿using System.Text.Json.Serialization;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
 namespace ChatBot.BlazorServerOnly.Models;
@@ -17,6 +18,8 @@ public class Conversation
 
     public required Guid Id { get; init; }
     public string? Title { get; set; }
+
+    [JsonIgnore]
     public bool MissingATitle => string.IsNullOrWhiteSpace(Title);
 
     public void AddUserMessage(string message)

@@ -51,9 +51,10 @@ public partial class ChatbotPage(
             Model = OpenAIChatModels.Gpt5Mini,
             ReasoningEffort = OpenAIReasoningEffort.Medium,
             ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
-            Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)]
+            Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)],
         });
         
+
         if (_conversation.MissingATitle)
         {
             AzureOpenAIAgent titleGenerationAgent = azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano);
@@ -81,7 +82,8 @@ public partial class ChatbotPage(
 
     private async Task GenerateNonStreamingResponseAsync(AzureOpenAIAgent agent)
     {
-        AgentResponse response = await agent.RunAsync(_conversation.GetRawMessages());
+        List<ChatMessage> chatMessages = _conversation.GetRawMessages();
+        AgentResponse response = await agent.RunAsync(chatMessages);
         _conversation.AddDataFromAgentResponse(response);
     }
 
