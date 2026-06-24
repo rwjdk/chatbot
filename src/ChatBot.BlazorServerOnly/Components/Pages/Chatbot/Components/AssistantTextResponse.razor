@@ -1,0 +1,20 @@
+﻿@using ChatBot.BlazorServerOnly.Models
+@if (!string.IsNullOrWhiteSpace(Message.Text))
+{
+    <article class="message-row from-assistant">
+        <div class="message-bubble">
+            <p class="message-text">@Message.Text</p>
+
+            @if (Message.Usage != null)
+            {
+                <p class="meta-info">Tokens: [In: @Message.Usage?.InputTokenCount | Out: @Message.Usage?.OutputTokenCount | Reasoning: @Message.Usage?.ReasoningTokenCount]</p>
+            }
+        </div>
+    </article>
+}
+@code {
+    [Parameter, EditorRequired]
+    public ConversationMessage Message { get; set; }
+
+
+}

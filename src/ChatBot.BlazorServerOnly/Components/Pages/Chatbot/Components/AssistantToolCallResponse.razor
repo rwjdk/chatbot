@@ -1,0 +1,51 @@
+﻿@using ChatBot.BlazorServerOnly.Extensions
+@using ChatBot.BlazorServerOnly.Models
+@using Microsoft.Extensions.AI
+@foreach (FunctionCallContent functionCallContent in Contents.OfType<FunctionCallContent>())
+{
+    <article class="message-row from-assistant">
+        <details class="tool-call-entry">
+            <summary>
+                <span class="tool-call-title">Tool Call</span>
+                <span class="tool-call-summary">@functionCallContent.AsDisplayString()</span>
+            </summary>
+            <div class="tool-call-detail">
+                @if (FindFunctionResultContent(functionCallContent.CallId) is { } functionResultContent)
+                {
+                    <p class="meta-info">
+                        <span>@functionResultContent.AsDisplayString()</span>
+                    </p>
+                }
+            </div>
+        </details>
+    </article>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<AIContent> Contents { get; set; }
+
+    [Parameter]
+    public Conversation? Conversation { get; set; }
+
+    private FunctionResultContent? FindFunctionResultContent(string callId)
+    {
+        IEnumerable<AIContent> contents;
+        if (Conversation == null)
+        {
+            contents = Contents;
+            return FindFunctionResultContent(callId, Contents);
+        }
+        else
+        {
+            contents = Conversation.Messages.SelectMany(x => x.Contents);
+        }
+
+        return FindFunctionResultContent(callId, contents);
+    }
+
+    private static FunctionResultContent? FindFunctionResultContent(string callId, IEnumerable<AIContent> contents)
+    {
+        return contents.OfType<FunctionResultContent>().FirstOrDefault(x => x.CallId == callId);
+    }
+}

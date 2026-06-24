@@ -1,141 +1,34 @@
 @page "/"
-@using ChatBot.BlazorServerOnly.Components.Pages.Chatbot.Components
-@using ChatBot.BlazorServerOnly.Extensions
-@using ChatBot.BlazorServerOnly.Models
-@using Microsoft.Extensions.AI
-
 <main class="chat-page">
     <LeftSidebar @ref="_leftSidebar" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
 
     <div class="chat-main">
-        <section class="chat-messages">
-            <div class="message-list">
-
-                @foreach (ConversationMessage message in _currentConversation?.Messages ?? [])
-                {
-                    if (message.Role == ChatRole.User)
+        @if (_currentConversation != null)
+        {
+            <section class="chat-messages">
+                <div class="message-list">
+                    @foreach (ConversationMessage message in _currentConversation.Messages)
                     {
-                        <article class="message-row from-user">
-                            <div class="message-bubble">
-                                <p class="message-text">@message.Text</p>
-                            </div>
-                        </article>
-                    }
-                    else if (message.Role == ChatRole.Assistant)
-                    {
-                        foreach (AIContent content in message.Contents)
+                        if (message.Role == ChatRole.User)
                         {
-                            if (content is FunctionCallContent functionCallContent)
-                            {
-                                <article class="message-row from-assistant">
-                                    <details class="tool-call-entry">
-                                        <summary>
-                                            <span class="tool-call-title">Tool Call</span>
-                                            <span class="tool-call-summary">@functionCallContent.AsDisplayString()</span>
-                                        </summary>
-                                        <div class="tool-call-detail">
-                                            @if (FindFunctionResultContent(functionCallContent.CallId) is { } functionResultContent)
-                                            {
-                                                <p class="meta-info">
-                                                    <span>@functionResultContent.AsDisplayString()</span>
-                                                </p>
-                                            }
-                                        </div>
-                                    </details>
-                                </article>
-                            }
-                            else if (content is TextReasoningContent textReasoningContent && !string.IsNullOrWhiteSpace(textReasoningContent.Text))
-                            {
-                                <article class="message-row from-assistant">
-                                    <p class="meta-info">Thoughts: @textReasoningContent.Text</p>
-                                </article>
-                            }
+                            <UserMessage Message="message" />
                         }
-
-                        @if (!string.IsNullOrWhiteSpace(message.Text))
+                        else if (message.Role == ChatRole.Assistant)
                         {
-                            <article class="message-row from-assistant">
-                                <div class="message-bubble">
-                                    <p class="message-text">@message.Text</p>
-
-                                    @if (message.Usage != null)
-                                    {
-                                        <p class="meta-info">Tokens: [In: @message.Usage?.InputTokenCount | Out: @message.Usage?.OutputTokenCount | Reasoning: @message.Usage?.ReasoningTokenCount]</p>
-                                    }
-                                </div>
-                            </article>
+                            <AssistantReasoningResponse Contents="message.Contents" />
+                            <AssistantToolCallResponse Contents="message.Contents" Conversation="_currentConversation" />
+                            <AssistantTextResponse Message="message" />
                         }
                     }
-                }
 
-                @if (_currentConversation?.Messages.LastOrDefault()?.Role == ChatRole.User && !_streaming)
-                {
-                    <article class="message-row from-assistant">
-                        <div class="message-bubble">
-                            <p class="message-text">...</p>
-                        </div>
-                    </article>
-                }
-
-                @if (_streamedReasoning != null)
-                {
-                    <article class="message-row from-assistant">
-                        <p class="meta-info">Thoughts: @_streamedReasoning</p>
-                    </article>
-                }
-
-                @foreach (AIContent content in _streamedContent)
-                {
-                    switch (content)
-                    {
-                        case FunctionCallContent functionCallContent:
-                            <article class="message-row from-assistant">
-                                <details class="tool-call-entry">
-                                    <summary>
-                                        <span class="tool-call-title">Tool Call</span>
-                                        <span class="tool-call-summary">@functionCallContent.AsDisplayString()</span>
-                                    </summary>
-                                    <div class="tool-call-detail">
-                                        <p class="meta-info">Request: @functionCallContent.AsDisplayString()</p>
-                                        @if (FindFunctionResultContent(functionCallContent.CallId, _streamedContent) is FunctionResultContent streamedFunctionResultContent)
-                                        {
-                                            <p class="meta-info">Result: @streamedFunctionResultContent.AsDisplayString()</p>
-                                        }
-                                    </div>
-                                </details>
-                            </article>
-
-                            break;
-                        case FunctionResultContent functionResultContent:
-                            @if (!HasFunctionCallContent(functionResultContent.CallId, _streamedContent))
-                            {
-                                <article class="message-row from-assistant">
-                                    <details class="tool-call-entry">
-                                        <summary>
-                                            <span class="tool-call-title">Tool Call</span>
-                                            <span class="tool-call-summary">Result</span>
-                                        </summary>
-                                        <div class="tool-call-detail">
-                                            <p class="meta-info">Result: @functionResultContent.AsDisplayString()</p>
-                                        </div>
-                                    </details>
-                                </article>
-                            }
-                            break;
-                    }
-                }
-
-                @if (!string.IsNullOrEmpty(_streamedResponse))
-                {
-                    <article class="message-row from-assistant">
-                        <div class="message-bubble">
-                            <p class="message-text">@_streamedResponse</p>
-                        </div>
-                    </article>
-                }
-            </div>
-        </section>
-
+                    <MidTurnVisuals Streaming="_streaming"
+                                    Conversation="_currentConversation"
+                                    StreamedContents="_streamedContent"
+                                    StreamedResponse="@_streamedResponse"
+                                    StreamedReasoning="@_streamedReasoning" />
+                </div>
+            </section>
+        }
         <form class="composer" @onsubmit="SendMessageAsync">
             <textarea @bind="_input"
                       @bind:event="oninput"

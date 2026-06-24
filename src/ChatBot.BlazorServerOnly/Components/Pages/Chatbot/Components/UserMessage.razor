@@ -1,0 +1,11 @@
+﻿@using ChatBot.BlazorServerOnly.Models
+<article class="message-row from-user">
+    <div class="message-bubble">
+        <p class="message-text">@Message.Text</p>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public ConversationMessage Message { get; set; }
+}

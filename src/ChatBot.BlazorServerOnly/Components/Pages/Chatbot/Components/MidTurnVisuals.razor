@@ -1,0 +1,50 @@
+﻿@if (Streaming)
+{
+    //Streaming
+    if (StreamedReasoning != null)
+    {
+        <article class="message-row from-assistant">
+            <p class="meta-info">Thoughts: @StreamedReasoning</p>
+        </article>
+    }
+
+    <AssistantToolCallResponse Contents="StreamedContents" />
+
+    if (!string.IsNullOrEmpty(StreamedResponse))
+    {
+        <article class="message-row from-assistant">
+            <div class="message-bubble">
+                <p class="message-text">@StreamedResponse</p>
+            </div>
+        </article>
+    }
+}
+else
+{
+    //Non-streaming
+    if (Conversation.Messages.LastOrDefault()?.Role == ChatRole.User)
+    {
+        <article class="message-row from-assistant">
+            <div class="message-bubble">
+                <p class="message-text">...</p>
+            </div>
+        </article>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public bool Streaming { get; set; }
+
+    [Parameter, EditorRequired]
+    public Conversation Conversation { get; set; }
+
+    [Parameter, EditorRequired]
+    public IEnumerable<AIContent> StreamedContents { get; set; }
+    
+    [Parameter, EditorRequired]
+    public string? StreamedReasoning { get; set; }
+    
+    [Parameter, EditorRequired]
+    public string? StreamedResponse { get; set; }
+}

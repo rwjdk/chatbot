@@ -1,0 +1,14 @@
+﻿@foreach (AIContent content in Contents)
+{
+    if (content is TextReasoningContent textReasoningContent && !string.IsNullOrWhiteSpace(textReasoningContent.Text))
+    {
+        <article class="message-row from-assistant">
+            <p class="meta-info">Thoughts: @textReasoningContent.Text</p>
+        </article>
+    }
+}
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<AIContent> Contents { get; set; }
+
+}

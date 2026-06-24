@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
@@ -17,7 +16,7 @@ public partial class ChatbotPage(
     ILocalStorageService localStorageService,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
-    private const string StreamingLocalStorageKey = "chatbot.streaming";
+    
 
     private string? _input;
     private bool _streaming;
@@ -40,7 +39,7 @@ public partial class ChatbotPage(
         });
         _currentConversation = Conversation.NewConversation();
 
-        _streaming = await localStorageService.GetItemAsync<bool>(StreamingLocalStorageKey);
+        _streaming = await localStorageService.GetItemAsync<bool>(LocalStorageKeys.Streaming);
     }
 
     private void NewChat()
@@ -52,7 +51,7 @@ public partial class ChatbotPage(
     private async Task SetStreamingAsync(bool streaming)
     {
         _streaming = streaming;
-        await localStorageService.SetItemAsync(StreamingLocalStorageKey, streaming);
+        await localStorageService.SetItemAsync(LocalStorageKeys.Streaming, streaming);
     }
 
     private async Task SendMessageAsync()
@@ -130,30 +129,5 @@ public partial class ChatbotPage(
     {
         _currentConversation = conversation;
         ResetMidStreamingValues();
-    }
-
-    private FunctionResultContent? FindFunctionResultContent(string callId)
-    {
-        return _currentConversation == null ? null : FindFunctionResultContent(callId, _currentConversation.Messages.SelectMany(x => x.Contents));
-    }
-
-    private static FunctionResultContent? FindFunctionResultContent(string callId, IEnumerable<AIContent> contents)
-    {
-        return contents.OfType<FunctionResultContent>().FirstOrDefault(x => x.CallId == callId);
-    }
-
-    private bool HasFunctionCallContent(string callId)
-    {
-        if (_currentConversation == null)
-        {
-            return false;
-        }
-
-        return HasFunctionCallContent(callId, _currentConversation.Messages.SelectMany(x => x.Contents));
-    }
-
-    private static bool HasFunctionCallContent(string callId, IEnumerable<AIContent> contents)
-    {
-        return contents.OfType<FunctionCallContent>().Any(x => x.CallId == callId);
     }
 }
