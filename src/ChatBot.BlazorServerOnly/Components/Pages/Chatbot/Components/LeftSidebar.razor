@@ -1,0 +1,12 @@
+@using ChatBot.BlazorServerOnly.Models
+
+<aside class="conversation-sidebar">
+    <button class="new-chat-button" type="button" @onclick="OnNewChat">New Chat</button>
+
+    <div class="conversation-list">
+        @foreach (Conversation conversation in _conversations)
+        {
+            <button class="conversation-button" type="button" @onclick="() => OnConversationSelected.InvokeAsync(conversation)">@(conversation.Title)</button>
+        }
+    </div>
+</aside>

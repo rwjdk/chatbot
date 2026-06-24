@@ -1,0 +1,20 @@
+<aside class="options-sidebar">
+    <h2 class="options-title">Options</h2>
+    <label class="option-check">
+        <input class="option-checkbox" type="checkbox" @bind:get="Streaming" @bind:set="SetStreamingAsync" />
+        <span>Streaming</span>
+    </label>
+</aside>
+
+@code {
+    [Parameter]
+    public bool Streaming { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> StreamingChanged { get; set; }
+
+    private Task SetStreamingAsync(bool streaming)
+    {
+        return StreamingChanged.InvokeAsync(streaming);
+    }
+}

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
@@ -5,15 +6,19 @@ using ChatBot.BlazorServerOnly.Models;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.JSInterop;
 
-namespace ChatBot.BlazorServerOnly.Components.Pages;
+namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot;
 
 [UsedImplicitly]
-public partial class Home(
+public partial class ChatbotPage(
     AzureOpenAIAgentFactory azureOpenAIAgentFactory,
     StoredConversationsService storedConversationsService,
+    ILocalStorageService localStorageService,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
+    private const string StreamingLocalStorageKey = "chatbot.streaming";
+
     private string? _input;
     private bool _streaming;
     private string? _streamedResponse;
@@ -21,7 +26,7 @@ public partial class Home(
     private List<AIContent> _streamedContent = [];
     private AzureOpenAIAgent? _agent;
     private Conversation? _currentConversation;
-    private List<Conversation> _previousConversations = [];
+    private Components.LeftSidebar? _leftSidebar;
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,14 +38,21 @@ public partial class Home(
             ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
             Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)]
         });
-        _previousConversations = await storedConversationsService.LoadPreviousConversationsAsync();
         _currentConversation = Conversation.NewConversation();
+
+        _streaming = await localStorageService.GetItemAsync<bool>(StreamingLocalStorageKey);
     }
 
     private void NewChat()
     {
         _currentConversation = Conversation.NewConversation();
         ResetMidStreamingValues();
+    }
+
+    private async Task SetStreamingAsync(bool streaming)
+    {
+        _streaming = streaming;
+        await localStorageService.SetItemAsync(StreamingLocalStorageKey, streaming);
     }
 
     private async Task SendMessageAsync()
@@ -64,7 +76,7 @@ public partial class Home(
             AzureOpenAIAgent titleGenerationAgent = azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano);
             AgentResponse<string> response = await titleGenerationAgent.RunAsync<string>($"Given the following message: '{input}' generate a max 25 char long title for this question");
             _currentConversation.Title = response.Result;
-            _previousConversations.Add(_currentConversation);
+            _leftSidebar?.AddConversation(_currentConversation);
         }
 
         _currentConversation.AddUserMessage(input);
@@ -118,5 +130,30 @@ public partial class Home(
     {
         _currentConversation = conversation;
         ResetMidStreamingValues();
+    }
+
+    private FunctionResultContent? FindFunctionResultContent(string callId)
+    {
+        return _currentConversation == null ? null : FindFunctionResultContent(callId, _currentConversation.Messages.SelectMany(x => x.Contents));
+    }
+
+    private static FunctionResultContent? FindFunctionResultContent(string callId, IEnumerable<AIContent> contents)
+    {
+        return contents.OfType<FunctionResultContent>().FirstOrDefault(x => x.CallId == callId);
+    }
+
+    private bool HasFunctionCallContent(string callId)
+    {
+        if (_currentConversation == null)
+        {
+            return false;
+        }
+
+        return HasFunctionCallContent(callId, _currentConversation.Messages.SelectMany(x => x.Contents));
+    }
+
+    private static bool HasFunctionCallContent(string callId, IEnumerable<AIContent> contents)
+    {
+        return contents.OfType<FunctionCallContent>().Any(x => x.CallId == callId);
     }
 }

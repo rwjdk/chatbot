@@ -1,21 +1,11 @@
 @page "/"
+@using ChatBot.BlazorServerOnly.Components.Pages.Chatbot.Components
 @using ChatBot.BlazorServerOnly.Extensions
 @using ChatBot.BlazorServerOnly.Models
 @using Microsoft.Extensions.AI
 
-<PageTitle>Blazor Server Chatbot</PageTitle>
-
 <main class="chat-page">
-    <aside class="conversation-sidebar">
-        <button class="new-chat-button" type="button" @onclick="NewChat">New Chat</button>
-
-        <div class="conversation-list">
-            @foreach (Conversation conversation in _previousConversations)
-            {
-                <button class="conversation-button" type="button" @onclick="() => SwitchSession(conversation)">@(conversation.Title)</button>
-            }
-        </div>
-    </aside>
+    <LeftSidebar @ref="_leftSidebar" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
 
     <div class="chat-main">
         <section class="chat-messages">
@@ -38,7 +28,20 @@
                             if (content is FunctionCallContent functionCallContent)
                             {
                                 <article class="message-row from-assistant">
-                                    <p class="meta-info">Tool Call Request: @functionCallContent.AsDisplayString()</p>
+                                    <details class="tool-call-entry">
+                                        <summary>
+                                            <span class="tool-call-title">Tool Call</span>
+                                            <span class="tool-call-summary">@functionCallContent.AsDisplayString()</span>
+                                        </summary>
+                                        <div class="tool-call-detail">
+                                            @if (FindFunctionResultContent(functionCallContent.CallId) is { } functionResultContent)
+                                            {
+                                                <p class="meta-info">
+                                                    <span>@functionResultContent.AsDisplayString()</span>
+                                                </p>
+                                            }
+                                        </div>
+                                    </details>
                                 </article>
                             }
                             else if (content is TextReasoningContent textReasoningContent && !string.IsNullOrWhiteSpace(textReasoningContent.Text))
@@ -62,19 +65,6 @@
                                 </div>
                             </article>
                         }
-                    }
-                    else if (message.Role == ChatRole.Tool)
-                    {
-                        @foreach (AIContent content in message.Contents)
-                        {
-                            if (content is FunctionResultContent functionResultContent)
-                            {
-                                <article class="message-row from-assistant">
-                                    <p class="meta-info">Tool Call Result: @functionResultContent.AsDisplayString()</p>
-                                </article>
-                            }
-                        }
-
                     }
                 }
 
@@ -100,14 +90,37 @@
                     {
                         case FunctionCallContent functionCallContent:
                             <article class="message-row from-assistant">
-                                <p class="meta-info">Tool Call Request: @functionCallContent.AsDisplayString()</p>
+                                <details class="tool-call-entry">
+                                    <summary>
+                                        <span class="tool-call-title">Tool Call</span>
+                                        <span class="tool-call-summary">@functionCallContent.AsDisplayString()</span>
+                                    </summary>
+                                    <div class="tool-call-detail">
+                                        <p class="meta-info">Request: @functionCallContent.AsDisplayString()</p>
+                                        @if (FindFunctionResultContent(functionCallContent.CallId, _streamedContent) is FunctionResultContent streamedFunctionResultContent)
+                                        {
+                                            <p class="meta-info">Result: @streamedFunctionResultContent.AsDisplayString()</p>
+                                        }
+                                    </div>
+                                </details>
                             </article>
 
                             break;
                         case FunctionResultContent functionResultContent:
-                            <article class="message-row from-assistant">
-                                <p class="meta-info">Tool Call Result: @functionResultContent.AsDisplayString()</p>
-                            </article>
+                            @if (!HasFunctionCallContent(functionResultContent.CallId, _streamedContent))
+                            {
+                                <article class="message-row from-assistant">
+                                    <details class="tool-call-entry">
+                                        <summary>
+                                            <span class="tool-call-title">Tool Call</span>
+                                            <span class="tool-call-summary">Result</span>
+                                        </summary>
+                                        <div class="tool-call-detail">
+                                            <p class="meta-info">Result: @functionResultContent.AsDisplayString()</p>
+                                        </div>
+                                    </details>
+                                </article>
+                            }
                             break;
                     }
                 }
@@ -134,11 +147,5 @@
         </form>
     </div>
 
-    <aside class="options-sidebar">
-        <h2 class="options-title">Options</h2>
-        <label class="option-check">
-            <input class="option-checkbox" type="checkbox" @bind="_streaming" />
-            <span>Streaming</span>
-        </label>
-    </aside>
+    <RightSidebar Streaming="_streaming" StreamingChanged="SetStreamingAsync" />
 </main>

@@ -9,6 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Blazor.LocalStorage" Version="10.0.0" />
 		<ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
 	</ItemGroup>
 
