@@ -1,5 +1,4 @@
-﻿@using ChatBot.BlazorServerOnly.Models
-@if (!string.IsNullOrWhiteSpace(Message.Text))
+﻿@if (!string.IsNullOrWhiteSpace(Message.Text))
 {
     <article class="message-row from-assistant">
         <div class="message-bubble">
@@ -12,9 +11,8 @@
         </div>
     </article>
 }
-@code {
+@code
+{
     [Parameter, EditorRequired]
     public ConversationMessage Message { get; set; }
-
-
 }

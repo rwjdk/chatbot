@@ -17,7 +17,7 @@ public class Conversation
 
     public required Guid Id { get; init; }
     public string? Title { get; set; }
-    public bool MissingTitle => string.IsNullOrWhiteSpace(Title);
+    public bool MissingATitle => string.IsNullOrWhiteSpace(Title);
 
     public void AddUserMessage(string message)
     {
@@ -41,6 +41,6 @@ public class Conversation
                 RawMessage = message,
             });
         }
-        Messages.Last().Usage = response.Usage;
+        Messages.LastOrDefault()?.Usage = response.Usage;
     }
 }

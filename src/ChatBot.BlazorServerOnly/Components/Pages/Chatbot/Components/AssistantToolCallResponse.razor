@@ -1,7 +1,4 @@
-﻿@using ChatBot.BlazorServerOnly.Extensions
-@using ChatBot.BlazorServerOnly.Models
-@using Microsoft.Extensions.AI
-@foreach (FunctionCallContent functionCallContent in Contents.OfType<FunctionCallContent>())
+﻿@foreach (FunctionCallContent functionCallContent in Contents.OfType<FunctionCallContent>())
 {
     <article class="message-row from-assistant">
         <details class="tool-call-entry">
@@ -30,22 +27,8 @@
 
     private FunctionResultContent? FindFunctionResultContent(string callId)
     {
-        IEnumerable<AIContent> contents;
-        if (Conversation == null)
-        {
-            contents = Contents;
-            return FindFunctionResultContent(callId, Contents);
-        }
-        else
-        {
-            contents = Conversation.Messages.SelectMany(x => x.Contents);
-        }
+        IEnumerable<AIContent> contents = Conversation == null ? Contents : Conversation.Messages.SelectMany(x => x.Contents);
 
-        return FindFunctionResultContent(callId, contents);
-    }
-
-    private static FunctionResultContent? FindFunctionResultContent(string callId, IEnumerable<AIContent> contents)
-    {
         return contents.OfType<FunctionResultContent>().FirstOrDefault(x => x.CallId == callId);
     }
 }

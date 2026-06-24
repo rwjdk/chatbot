@@ -24,6 +24,7 @@ public static class Extensions
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        //Agent Framework Toolkit Initialization
         string? azureOpenAIEndpoint = builder.Configuration[SecretKeys.AzureOpenAIEndpoint];
         string? azureOpenAIKey = builder.Configuration[SecretKeys.AzureOpenAIKey];
         if (azureOpenAIEndpoint != null && azureOpenAIKey != null)
@@ -31,6 +32,7 @@ public static class Extensions
             builder.Services.AddAzureOpenAIAgentFactory(azureOpenAIEndpoint, azureOpenAIKey);
         }
 
+        //Open Weather Map Setup
         string? weatherServiceKey = builder.Configuration[SecretKeys.WeatherServiceKey];
         if (weatherServiceKey != null)
         {

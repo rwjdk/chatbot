@@ -3,8 +3,7 @@ using ServiceDefaults;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
-
-
+//Parameters
 IResourceBuilder<ParameterResource> azureOpenAiEndpoint = builder.AddParameter(SecretKeys.AzureOpenAIEndpoint, secret: false);
 IResourceBuilder<ParameterResource> azureOpenAiKey = builder.AddParameter(SecretKeys.AzureOpenAIKey, secret: true);
 IResourceBuilder<ParameterResource> weatherServiceKey = builder.AddParameter(SecretKeys.WeatherServiceKey, secret: true);

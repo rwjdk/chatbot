@@ -1,13 +1,12 @@
 @page "/"
 <main class="chat-page">
     <LeftSidebar @ref="_leftSidebar" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
-
     <div class="chat-main">
-        @if (_currentConversation != null)
+        @if (_conversation != null)
         {
             <section class="chat-messages">
                 <div class="message-list">
-                    @foreach (ConversationMessage message in _currentConversation.Messages)
+                    @foreach (ConversationMessage message in _conversation.Messages)
                     {
                         if (message.Role == ChatRole.User)
                         {
@@ -16,20 +15,20 @@
                         else if (message.Role == ChatRole.Assistant)
                         {
                             <AssistantReasoningResponse Contents="message.Contents" />
-                            <AssistantToolCallResponse Contents="message.Contents" Conversation="_currentConversation" />
+                            <AssistantToolCallResponse Contents="message.Contents" Conversation="_conversation" />
                             <AssistantTextResponse Message="message" />
                         }
                     }
 
                     <MidTurnVisuals Streaming="_streaming"
-                                    Conversation="_currentConversation"
+                                    Conversation="_conversation"
                                     StreamedContents="_streamedContent"
                                     StreamedResponse="@_streamedResponse"
                                     StreamedReasoning="@_streamedReasoning" />
                 </div>
             </section>
         }
-        <form class="composer" @onsubmit="SendMessageAsync">
+        <form class="composer" @onsubmit="SendAsync">
             <textarea @bind="_input"
                       @bind:event="oninput"
                       rows="3"
@@ -39,6 +38,5 @@
             <button id="send-message-button" class="send-button" type="submit">Send</button>
         </form>
     </div>
-
     <RightSidebar Streaming="_streaming" StreamingChanged="SetStreamingAsync" />
 </main>

@@ -1,10 +1,10 @@
-using ChatBot.BlazorServerOnly;
 using ChatBot.BlazorServerOnly.Components;
+using ChatBot.BlazorServerOnly.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults(); //From Aspire Service Defaults
-builder.Services.AddSingleton<StoredConversationsService>();
+builder.Services.AddSingleton<ConversationsService>();
 builder.Services.AddLocalStorageServices();
 
 // Add services to the container.
@@ -28,7 +28,5 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-app.MapDefaultEndpoints(); //From Aspire Service Defaults
 
 app.Run();

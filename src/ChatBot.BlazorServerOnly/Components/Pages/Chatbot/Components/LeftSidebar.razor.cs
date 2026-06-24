@@ -1,11 +1,12 @@
 using ChatBot.BlazorServerOnly.Models;
+using ChatBot.BlazorServerOnly.Services;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Components;
 
 namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot.Components;
 
 [UsedImplicitly]
-public partial class LeftSidebar(StoredConversationsService storedConversationsService)
+public partial class LeftSidebar(ConversationsService conversationsService)
 {
     private List<Conversation> _conversations = [];
 
@@ -17,7 +18,7 @@ public partial class LeftSidebar(StoredConversationsService storedConversationsS
 
     protected override async Task OnInitializedAsync()
     {
-        _conversations = await storedConversationsService.LoadPreviousConversationsAsync();
+        _conversations = await conversationsService.LoadPreviousConversationsAsync();
     }
 
     public void AddConversation(Conversation conversation)

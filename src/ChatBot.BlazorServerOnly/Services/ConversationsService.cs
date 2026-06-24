@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using ChatBot.BlazorServerOnly.Models;
 
-namespace ChatBot.BlazorServerOnly;
+namespace ChatBot.BlazorServerOnly.Services;
 
-public class StoredConversationsService
+public class ConversationsService
 {
     public async Task<List<Conversation>> LoadPreviousConversationsAsync()
     {
@@ -17,7 +17,7 @@ public class StoredConversationsService
         return conversations;
     }
 
-    public async Task StoreSessionAsync(Conversation conversation)
+    public async Task StoreConversationAsync(Conversation conversation)
     {
         string conversationFolder = GetConversationFolder();
         string conversationFile = Path.Combine(conversationFolder, $"{conversation.Id}.json");
