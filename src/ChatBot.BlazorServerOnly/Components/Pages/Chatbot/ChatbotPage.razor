@@ -2,32 +2,30 @@
 <main class="chat-page">
     <LeftSidebar @ref="_leftSidebar" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
     <div class="chat-main">
-        @if (_conversation != null)
-        {
-            <section class="chat-messages">
-                <div class="message-list">
-                    @foreach (ConversationMessage message in _conversation.Messages)
+        <section class="chat-messages">
+            <div class="message-list">
+                @foreach (ConversationMessage message in _conversation.Messages)
+                {
+                    if (message.Role == ChatRole.User)
                     {
-                        if (message.Role == ChatRole.User)
-                        {
-                            <UserMessage Message="message" />
-                        }
-                        else if (message.Role == ChatRole.Assistant)
-                        {
-                            <AssistantReasoningResponse Contents="message.Contents" />
-                            <AssistantToolCallResponse Contents="message.Contents" Conversation="_conversation" />
-                            <AssistantTextResponse Message="message" />
-                        }
+                        <UserMessage Message="message" />
                     }
+                    else if (message.Role == ChatRole.Assistant)
+                    {
+                        <AssistantReasoningResponse Contents="message.Contents" />
+                        <AssistantToolCallResponse Contents="message.Contents" Conversation="_conversation" />
+                        <AssistantTextResponse Message="message" />
+                    }
+                }
 
-                    <MidTurnVisuals Streaming="_streaming"
-                                    Conversation="_conversation"
-                                    StreamedContents="_streamedContent"
-                                    StreamedResponse="@_streamedResponse"
-                                    StreamedReasoning="@_streamedReasoning" />
-                </div>
-            </section>
-        }
+                <MidTurnVisuals Streaming="_streaming"
+                                Conversation="_conversation"
+                                StreamedContents="_streamedContent"
+                                StreamedResponse="@_streamedResponse"
+                                StreamedReasoning="@_streamedReasoning" />
+            </div>
+        </section>
+
         <form class="composer" @onsubmit="SendAsync">
             <textarea @bind="_input"
                       @bind:event="oninput"
