@@ -4,6 +4,13 @@
         <input class="option-checkbox" type="checkbox" @bind:get="Streaming" @bind:set="SetStreamingAsync" />
         <span>Streaming</span>
     </label>
+    <label class="option-field">
+        <span>Image generation</span>
+        <select class="option-select" @bind:get="SelectedImageGenStyle" @bind:set="SetImageGenStyleAsync">
+            <option value="@ImageGenStyle.RouterAgent">RouterAgent</option>
+            <option value="@ImageGenStyle.ImageGenAsTool">ImageGenAsTool</option>
+        </select>
+    </label>
 </aside>
 
 @code {
@@ -13,8 +20,19 @@
     [Parameter]
     public EventCallback<bool> StreamingChanged { get; set; }
 
+    [Parameter]
+    public ImageGenStyle SelectedImageGenStyle { get; set; }
+
+    [Parameter]
+    public EventCallback<ImageGenStyle> SelectedImageGenStyleChanged { get; set; }
+
     private Task SetStreamingAsync(bool streaming)
     {
         return StreamingChanged.InvokeAsync(streaming);
+    }
+
+    private Task SetImageGenStyleAsync(ImageGenStyle imageGenStyle)
+    {
+        return SelectedImageGenStyleChanged.InvokeAsync(imageGenStyle);
     }
 }

@@ -38,5 +38,8 @@
             <button id="send-message-button" class="send-button" type="submit">Send</button>
         </form>
     </div>
-    <RightSidebar Streaming="_streaming" StreamingChanged="SetStreamingAsync" />
+    <RightSidebar Streaming="_streaming"
+                  StreamingChanged="SetStreamingAsync"
+                  SelectedImageGenStyle="_imageGenStyle"
+                  SelectedImageGenStyleChanged="SetImageGenStyleAsync" />
 </main>

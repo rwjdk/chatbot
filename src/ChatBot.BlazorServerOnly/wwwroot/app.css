@@ -172,11 +172,9 @@ h1:focus {
 
 .tool-call-summary {
     min-width: 0;
-    overflow: hidden;
     color: #6b7280;
     font-size: 11px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  
 }
 
 .tool-call-detail {
@@ -273,4 +271,25 @@ h1:focus {
     width: 16px;
     height: 16px;
     accent-color: #2563eb;
+}
+
+.option-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+    color: #374151;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.option-select {
+    min-height: 36px;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 10px;
+    background: #ffffff;
+    color: #111827;
+    font: inherit;
 }
