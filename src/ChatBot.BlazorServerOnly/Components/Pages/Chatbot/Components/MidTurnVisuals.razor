@@ -1,4 +1,11 @@
-﻿@if (Streaming)
+﻿@if (InImageGenerationMode)
+{
+    <article class="message-row from-assistant">
+        <p class="meta-info">Generating Image. Please wait...</p>
+    </article>
+}
+
+@if (Streaming)
 {
     if (StreamedReasoning != null)
     {
@@ -34,6 +41,9 @@ else
 @code {
     [Parameter, EditorRequired]
     public bool Streaming { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool InImageGenerationMode { get; set; }
 
     [Parameter, EditorRequired]
     public Conversation Conversation { get; set; }

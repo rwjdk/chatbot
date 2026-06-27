@@ -16,4 +16,6 @@ public class ConversationMessage
 
     [JsonIgnore]
     public IList<AIContent> Contents => RawMessage.Contents;
+
+    public string? ImagePath { get; set; }
 }

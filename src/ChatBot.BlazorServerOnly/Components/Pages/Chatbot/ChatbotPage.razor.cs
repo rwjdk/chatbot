@@ -1,12 +1,15 @@
+using System.ClientModel;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
+using Azure.AI.OpenAI;
 using ChatBot.BlazorServerOnly.Models;
 using ChatBot.BlazorServerOnly.Services;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.JSInterop;
+using OpenAI.Images;
 
 namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot;
 
@@ -26,9 +29,10 @@ public partial class ChatbotPage(
     private string? _streamedResponse;
     private string? _streamedReasoning;
     private List<AIContent> _streamedContent = [];
-    
+
     //Components
     private Components.LeftSidebar? _leftSidebar;
+    private bool _inImageGenerationMode;
 
     protected override async Task OnInitializedAsync()
     {
@@ -45,15 +49,13 @@ public partial class ChatbotPage(
         }
         ResetMidTurnValues();
 
-        AzureOpenAIAgent agent = azureOpenAIAgentFactory.CreateAgent(new AgentOptions
+        AzureOpenAIAgent routerAgent = azureOpenAIAgentFactory.CreateAgent(new AgentOptions
         {
-            ClientType = ClientType.ResponsesApi,
-            Model = OpenAIChatModels.Gpt5Mini,
-            ReasoningEffort = OpenAIReasoningEffort.Medium,
-            ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
-            Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)],
+            ClientType = ClientType.ChatClient,
+            Model = OpenAIChatModels.Gpt5Nano,
+            ReasoningEffort = OpenAIReasoningEffort.Low,
+            Instructions = "You are a router-agent determining what task the user is asking (being either generating an image or being a normal chatbot). If you are at all in doubt, go the chatbot route"
         });
-        
 
         if (_conversation.MissingATitle)
         {
@@ -67,6 +69,70 @@ public partial class ChatbotPage(
         _conversation.AddUserMessage(input);
         await InvokeAsync(StateHasChanged);
 
+        AgentResponse<TaskType> routerResponse = await routerAgent.RunAsync<TaskType>(_conversation.GetRawMessages());
+        switch (routerResponse.Result)
+        {
+            case TaskType.GenerateImageRoute:
+                await DoImageGenerationAsync();
+                break;
+            case TaskType.ChatBotRoute:
+                await AnswerWithChatbotAsync();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+
+
+        await InvokeAsync(StateHasChanged);
+        await conversationsService.StoreConversationAsync(_conversation);
+    }
+
+    private async Task DoImageGenerationAsync()
+    {
+        _inImageGenerationMode = true;
+        await InvokeAsync(StateHasChanged);
+        AzureOpenAIClient client = azureOpenAIAgentFactory.Connection.GetClient();
+        ImageClient imageClient = client.GetImageClient("gpt-image-1");
+        string imageGenerationPrompt = _conversation.GetAsImageGenerationPrompt();
+        ClientResult<GeneratedImage> image = await imageClient.GenerateImageAsync(imageGenerationPrompt);
+
+        string? generatedImagesFolder = "generated-images";
+        string directory = Path.Combine(
+            Environment.CurrentDirectory,
+            "wwwroot",
+            generatedImagesFolder);
+
+        Directory.CreateDirectory(directory);
+
+        string fileName = $"{Guid.CreateVersion7()}.png";
+        string path = Path.Combine(directory, fileName);
+
+        await using (FileStream fileStream = File.Create(path))
+        {
+            await image.Value.ImageBytes.ToStream().CopyToAsync(fileStream);
+        }
+
+        _conversation.Messages.Add(new ConversationMessage
+        {
+            ImagePath = $"{generatedImagesFolder}/{fileName}",
+            RawMessage = new ChatMessage(ChatRole.Assistant, string.Empty)
+        });
+        ResetMidTurnValues();
+    }
+
+    private async Task AnswerWithChatbotAsync()
+    {
+        AzureOpenAIAgent agent = azureOpenAIAgentFactory.CreateAgent(new AgentOptions
+        {
+            ClientType = ClientType.ResponsesApi,
+            Model = OpenAIChatModels.Gpt5Mini,
+            ReasoningEffort = OpenAIReasoningEffort.Medium,
+            ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
+            Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions)],
+            Instructions = "You are a chatbot answering questions"
+        });
+
         if (!_streaming)
         {
             await GenerateNonStreamingResponseAsync(agent);
@@ -75,9 +141,6 @@ public partial class ChatbotPage(
         {
             await GenerateStreamingResponseAsync(agent);
         }
-
-        await InvokeAsync(StateHasChanged);
-        await conversationsService.StoreConversationAsync(_conversation);
     }
 
     private async Task GenerateNonStreamingResponseAsync(AzureOpenAIAgent agent)
@@ -139,5 +202,6 @@ public partial class ChatbotPage(
         _streamedReasoning = null;
         _streamedResponse = null;
         _streamedContent = [];
+        _inImageGenerationMode = false;
     }
 }

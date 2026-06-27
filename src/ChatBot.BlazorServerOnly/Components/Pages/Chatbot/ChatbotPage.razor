@@ -15,10 +15,12 @@
                         <AssistantReasoningResponse Contents="message.Contents" />
                         <AssistantToolCallResponse Contents="message.Contents" Conversation="_conversation" />
                         <AssistantTextResponse Message="message" />
+                        <AssistantImageResponse Message="message"/>
                     }
                 }
 
                 <MidTurnVisuals Streaming="_streaming"
+                                InImageGenerationMode="_inImageGenerationMode"
                                 Conversation="_conversation"
                                 StreamedContents="_streamedContent"
                                 StreamedResponse="@_streamedResponse"

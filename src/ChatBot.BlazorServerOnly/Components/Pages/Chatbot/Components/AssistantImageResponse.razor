@@ -1,0 +1,11 @@
+﻿@if (!string.IsNullOrWhiteSpace(Message.ImagePath))
+{
+    <article class="message-row from-assistant">
+        <img src="@Message.ImagePath" alt="Generated Image" style="width: 50%"/>
+    </article>
+}
+@code
+{
+    [Parameter, EditorRequired]
+    public ConversationMessage Message { get; set; }
+}

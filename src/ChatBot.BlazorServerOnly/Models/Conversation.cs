@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
@@ -45,5 +46,16 @@ public class Conversation
             });
         }
         Messages.LastOrDefault()?.Usage = response.Usage;
+    }
+
+    public string GetAsImageGenerationPrompt()
+    {
+        StringBuilder prompt = new();
+        foreach (ConversationMessage message in Messages)
+        {
+            prompt.AppendLine($"<message role=\"{message.Role}\">{message.Text}</message>");
+        }
+
+        return prompt.ToString();
     }
 }
