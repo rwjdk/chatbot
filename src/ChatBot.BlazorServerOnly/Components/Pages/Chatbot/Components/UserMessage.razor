@@ -1,6 +1,26 @@
-﻿<article class="message-row from-user">
-    <div class="message-bubble">
-        <p class="message-text">@Message.Text</p>
+<article class="message-row from-user">
+    <div class="user-message-stack">
+        @if (Message.Attachments.Count > 0)
+        {
+            <div class="message-attachments">
+                @foreach (ConversationAttachment attachment in Message.Attachments)
+                {
+                    <div class="attachment-thumbnail" title="@attachment.FileName">
+                        @if (attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <img src="@attachment.RelativePath" alt="@attachment.FileName" />
+                        }
+                        else
+                        {
+                            <span>PDF</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        <div class="message-bubble">
+            <p class="message-text">@Message.Text</p>
+        </div>
     </div>
 </article>
 

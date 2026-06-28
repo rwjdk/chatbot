@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -23,17 +23,14 @@ public class Conversation
     [JsonIgnore]
     public bool MissingATitle => string.IsNullOrWhiteSpace(Title);
 
-    public void AddUserMessage(string message)
+    public void AddUserMessage(string message, List<ConversationAttachment>? attachments = null)
     {
         Messages.Add(new ConversationMessage
         {
-            RawMessage = new ChatMessage(ChatRole.User, message)
+            Role = ChatRole.User,
+            Text = message,
+            Attachments = attachments ?? []
         });
-    }
-
-    public List<ChatMessage> GetRawMessages()
-    {
-        return Messages.Select(x => x.RawMessage).ToList();
     }
 
     public void AddDataFromAgentResponse(AgentResponse response)
@@ -42,7 +39,9 @@ public class Conversation
         {
             Messages.Add(new ConversationMessage
             {
-                RawMessage = message,
+                Role = message.Role,
+                Text = message.Text,
+                Contents = message.Contents.ToList()
             });
         }
         Messages.LastOrDefault()?.Usage = response.Usage;

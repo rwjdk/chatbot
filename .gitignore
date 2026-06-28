@@ -428,3 +428,5 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /src/ChatBot.BlazorServerOnly/wwwroot/generated-images
+/src/ChatBot.BlazorServerOnly/wwwroot/file-uploads
+/src/ChatBot.BlazorServerOnly/App_Data/file-uploads

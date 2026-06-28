@@ -8,6 +8,7 @@ using ChatBot.BlazorServerOnly.Services;
 using ChatBot.BlazorServerOnly.Tools;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.AI;
 using Microsoft.JSInterop;
 using OpenAI.Images;
@@ -18,11 +19,16 @@ namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot;
 public partial class ChatbotPage(
     AzureOpenAIAgentFactory azureOpenAIAgentFactory,
     ConversationsService conversationsService,
+    FileUploadStorageService fileUploadStorageService,
+    ConversationChatMessageMapper conversationChatMessageMapper,
     ILocalStorageService localStorageService,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
+    private const long MaxAttachmentSize = 20 * 1024 * 1024;
+
     //Input and Conversation
     private string? _input;
+    private List<PendingAttachment> _pendingFiles = [];
     private Conversation _conversation = Conversation.NewConversation();
 
     //Streaming values
@@ -46,22 +52,24 @@ public partial class ChatbotPage(
     {
         string? input = _input?.Trim();
 
-        if (string.IsNullOrWhiteSpace(input))
+        if (string.IsNullOrWhiteSpace(input) && _pendingFiles.Count == 0)
         {
             return;
         }
-        ResetMidTurnValues();
+        input ??= string.Empty;
 
         if (_conversation.MissingATitle)
         {
             AzureOpenAIAgent titleGenerationAgent = azureOpenAIAgentFactory.CreateAgent(OpenAIChatModels.Gpt41Nano);
-            string message = $"Given the following message: '{input}' generate a max 25 char long title for this question";
+            string message = $"Given the following message: '{GetTitleSource(input)}' generate a max 25 char long title for this question";
             AgentResponse<string> response = await titleGenerationAgent.RunAsync<string>(message);
             _conversation.Title = response.Result;
             _leftSidebar?.AddConversation(_conversation);
         }
 
-        _conversation.AddUserMessage(input);
+        List<ConversationAttachment> attachments = await SavePendingFilesAsync();
+        ResetMidTurnValues();
+        _conversation.AddUserMessage(input, attachments);
         await InvokeAsync(StateHasChanged);
 
         switch (_imageGenStyle)
@@ -76,7 +84,7 @@ public partial class ChatbotPage(
                         Instructions = "You are a router-agent determining what task the user is asking (being either generating an image (use can say show image, generate image, draw image, render image) or being a normal chatbot). If you are at all in doubt, go the chatbot route"
                     });
 
-                    AgentResponse<TaskType> routerResponse = await routerAgent.RunAsync<TaskType>(_conversation.GetRawMessages());
+                    AgentResponse<TaskType> routerResponse = await routerAgent.RunAsync<TaskType>(await conversationChatMessageMapper.ToChatMessagesAsync(_conversation));
                     switch (routerResponse.Result)
                     {
                         case TaskType.GenerateImageRoute:
@@ -135,7 +143,7 @@ public partial class ChatbotPage(
 
     private async Task GenerateNonStreamingResponseAsync(AzureOpenAIAgent agent)
     {
-        List<ChatMessage> chatMessages = _conversation.GetRawMessages();
+        List<ChatMessage> chatMessages = await conversationChatMessageMapper.ToChatMessagesAsync(_conversation);
         AgentResponse response = await agent.RunAsync(chatMessages);
         _conversation.AddDataFromAgentResponse(response);
     }
@@ -143,7 +151,7 @@ public partial class ChatbotPage(
     private async Task GenerateStreamingResponseAsync(AzureOpenAIAgent agent)
     {
         List<AgentResponseUpdate> updates = [];
-        List<ChatMessage> chatMessages = _conversation.GetRawMessages();
+        List<ChatMessage> chatMessages = await conversationChatMessageMapper.ToChatMessagesAsync(_conversation);
         await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(chatMessages))
         {
             updates.Add(update);
@@ -193,12 +201,67 @@ public partial class ChatbotPage(
         await localStorageService.SetItemAsync(LocalStorageKeys.ImageGenStyle, imageGenStyle);
     }
 
+    private async Task SelectFilesAsync(InputFileChangeEventArgs args)
+    {
+        List<PendingAttachment> pendingFiles = [];
+        foreach (IBrowserFile file in args.GetMultipleFiles().Where(IsSupportedFile))
+        {
+            await using MemoryStream memoryStream = new();
+            await file.OpenReadStream(MaxAttachmentSize).CopyToAsync(memoryStream);
+            byte[] fileBytes = memoryStream.ToArray();
+            string? previewDataUri = null;
+            if (file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                previewDataUri = $"data:{file.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
+            }
+
+            pendingFiles.Add(new PendingAttachment(file.Name, file.ContentType, fileBytes, previewDataUri));
+        }
+
+        _pendingFiles = pendingFiles;
+    }
+
+    private async Task<List<ConversationAttachment>> SavePendingFilesAsync()
+    {
+        List<ConversationAttachment> attachments = [];
+        foreach (PendingAttachment file in _pendingFiles)
+        {
+            attachments.Add(await fileUploadStorageService.SaveAsync(file.FileName, file.ContentType, file.Bytes));
+        }
+
+        return attachments;
+    }
+
+    private string GetTitleSource(string input)
+    {
+        if (!string.IsNullOrWhiteSpace(input))
+        {
+            return input;
+        }
+
+        return string.Join(", ", _pendingFiles.Select(x => x.FileName));
+    }
+
+    private static bool IsSupportedFile(IBrowserFile file)
+    {
+        return file.ContentType == "application/pdf" || file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void ResetMidTurnValues()
     {
         _input = null;
+        _pendingFiles = [];
         _streamedReasoning = null;
         _streamedResponse = null;
         _streamedContent = [];
         _inImageGenerationMode = false;
+    }
+
+    private sealed class PendingAttachment(string fileName, string contentType, byte[] bytes, string? previewDataUri)
+    {
+        public string FileName { get; } = fileName;
+        public string ContentType { get; } = contentType;
+        public byte[] Bytes { get; } = bytes;
+        public string? PreviewDataUri { get; } = previewDataUri;
     }
 }

@@ -29,13 +29,40 @@
         </section>
 
         <form class="composer" @onsubmit="SendAsync">
-            <textarea @bind="_input"
-                      @bind:event="oninput"
-                      rows="3"
-                      placeholder="Type a message..."
-                      onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('send-message-button').click(); }"
-                      class="message-input"></textarea>
-            <button id="send-message-button" class="send-button" type="submit">Send</button>
+            @if (_pendingFiles.Count > 0)
+            {
+                <div class="pending-attachments">
+                    @foreach (PendingAttachment file in _pendingFiles)
+                    {
+                        <div class="attachment-thumbnail" title="@file.FileName">
+                            @if (file.PreviewDataUri is not null)
+                            {
+                                <img src="@file.PreviewDataUri" alt="@file.FileName" />
+                            }
+                            else
+                            {
+                                <span>PDF</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <div class="composer-controls">
+                <label class="file-upload-button" title="Attach files">
+                    +
+                    <InputFile class="file-upload-input"
+                               OnChange="SelectFilesAsync"
+                               accept="application/pdf,image/*"
+                               multiple />
+                </label>
+                <textarea @bind="_input"
+                          @bind:event="oninput"
+                          rows="3"
+                          placeholder="Type a message..."
+                          onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('send-message-button').click(); }"
+                          class="message-input"></textarea>
+                <button id="send-message-button" class="send-button" type="submit">Send</button>
+            </div>
         </form>
     </div>
     <RightSidebar Streaming="_streaming"

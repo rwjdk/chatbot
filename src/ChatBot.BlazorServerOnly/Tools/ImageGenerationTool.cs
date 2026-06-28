@@ -1,4 +1,4 @@
-﻿using AgentFrameworkToolkit.AzureOpenAI;
+using AgentFrameworkToolkit.AzureOpenAI;
 using Azure.AI.OpenAI;
 using ChatBot.BlazorServerOnly.Models;
 using Microsoft.Extensions.AI;
@@ -34,7 +34,7 @@ public class ImageGenerationTool(AzureOpenAIAgentFactory azureOpenAIAgentFactory
         conversation.Messages.Add(new ConversationMessage
         {
             ImagePath = $"{generatedImagesFolder}/{fileName}",
-            RawMessage = new ChatMessage(ChatRole.Assistant, string.Empty)
+            Role = ChatRole.Assistant
         });
 
         return "Image Generated";

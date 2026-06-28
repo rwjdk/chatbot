@@ -1,21 +1,13 @@
-﻿using Microsoft.Extensions.AI;
-using System.Text.Json.Serialization;
+using Microsoft.Extensions.AI;
 
 namespace ChatBot.BlazorServerOnly.Models;
 
 public class ConversationMessage
 {
-    public required ChatMessage RawMessage { get; init; }
+    public ChatRole Role { get; init; }
+    public string Text { get; init; } = string.Empty;
+    public List<AIContent> Contents { get; init; } = [];
     public UsageDetails? Usage { get; set; }
-
-    [JsonIgnore]
-    public ChatRole Role => RawMessage.Role;
-
-    [JsonIgnore]
-    public string Text => RawMessage.Text;
-
-    [JsonIgnore]
-    public IList<AIContent> Contents => RawMessage.Contents;
-
+    public List<ConversationAttachment> Attachments { get; init; } = [];
     public string? ImagePath { get; init; }
 }
