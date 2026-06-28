@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using ChatBot.BlazorServerOnly.Models;
 using Microsoft.Extensions.AI;
 
@@ -59,13 +57,6 @@ public class FileUploadStorageService(IWebHostEnvironment webHostEnvironment)
 
     private string GetUploadFolder(string userId)
     {
-        return Path.Combine(webHostEnvironment.ContentRootPath, "App_Data", "file-uploads", GetUserFolderName(userId));
-    }
-
-    private static string GetUserFolderName(string userId)
-    {
-        byte[] userIdBytes = Encoding.UTF8.GetBytes(userId);
-        byte[] hashBytes = SHA256.HashData(userIdBytes);
-        return Convert.ToHexString(hashBytes);
+        return Path.Combine(webHostEnvironment.ContentRootPath, "App_Data", "file-uploads", Path.GetFileName(userId));
     }
 }

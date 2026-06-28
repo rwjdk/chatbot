@@ -15,8 +15,23 @@ builder.Services.AddSingleton<ConversationsService>();
 builder.Services.AddSingleton<FileUploadStorageService>();
 builder.Services.AddSingleton<ConversationChatMessageMapper>();
 builder.Services.AddLocalStorageServices();
+
+//Auth (Start)
 builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+{
+    Func<RedirectContext, Task> redirectToIdentityProvider = options.Events.OnRedirectToIdentityProvider;
+    options.Events.OnRedirectToIdentityProvider = async context =>
+    {
+        await redirectToIdentityProvider(context);
+
+        if (context.ProtocolMessage.RequestType == Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectRequestType.Authentication)
+        {
+            context.ProtocolMessage.Prompt = "select_account";
+        }
+    };
+});
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
@@ -24,6 +39,7 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddControllersWithViews()
     .AddMicrosoftIdentityUI();
+//Auth (End)
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -45,6 +61,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapGet("/attachments/{storedFileName}", (string storedFileName, ClaimsPrincipal user, FileUploadStorageService fileUploadStorageService) =>
