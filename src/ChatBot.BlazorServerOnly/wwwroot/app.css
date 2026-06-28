@@ -321,6 +321,53 @@ h1:focus {
     background: #ffffff;
 }
 
+.login-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 16px;
+}
+
+.login-display-user {
+    min-width: 0;
+}
+
+.login-display-label {
+    display: block;
+    margin-bottom: 2px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.login-display-name {
+    display: block;
+    overflow: hidden;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.login-display-link {
+    flex: 0 0 auto;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+}
+
 .options-title {
     margin: 0 0 16px;
     color: #111827;

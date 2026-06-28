@@ -1,0 +1,11 @@
+<AuthorizeView>
+    <Authorized>
+        <div class="login-display">
+            <div class="login-display-user">
+                <span class="login-display-label">Signed in as</span>
+                <span class="login-display-name">@context.User.Identity?.Name</span>
+            </div>
+            <a class="login-display-link" href="MicrosoftIdentity/Account/SignOut">Logout</a>
+        </div>
+    </Authorized>
+</AuthorizeView>

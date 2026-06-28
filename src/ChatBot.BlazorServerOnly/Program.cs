@@ -1,6 +1,10 @@
 using ChatBot.BlazorServerOnly.Components;
 using ChatBot.BlazorServerOnly.Services;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +13,15 @@ builder.Services.AddSingleton<ConversationsService>();
 builder.Services.AddSingleton<FileUploadStorageService>();
 builder.Services.AddSingleton<ConversationChatMessageMapper>();
 builder.Services.AddLocalStorageServices();
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddControllersWithViews()
+    .AddMicrosoftIdentityUI();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -28,6 +41,8 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapGet("/attachments/{storedFileName}", (string storedFileName, FileUploadStorageService fileUploadStorageService) =>
@@ -45,10 +60,12 @@ app.MapGet("/attachments/{storedFileName}", (string storedFileName, FileUploadSt
     }
 
     return Results.File(filePath, contentType);
-});
+}).RequireAuthorization();
 
+app.MapControllers();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .RequireAuthorization();
 
 app.Run();
