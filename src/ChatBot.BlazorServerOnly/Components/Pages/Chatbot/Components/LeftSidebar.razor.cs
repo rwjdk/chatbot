@@ -16,9 +16,18 @@ public partial class LeftSidebar(ConversationsService conversationsService)
     [Parameter]
     public EventCallback<Conversation> OnConversationSelected { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    [Parameter]
+    public string UserId { get; set; } = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
     {
-        _conversations = await conversationsService.LoadPreviousConversationsAsync();
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            _conversations = [];
+            return;
+        }
+
+        _conversations = await conversationsService.LoadPreviousConversationsAsync(UserId);
     }
 
     public void AddConversation(Conversation conversation)

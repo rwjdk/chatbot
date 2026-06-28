@@ -1,6 +1,6 @@
 @page "/"
 <main class="chat-page">
-    <LeftSidebar @ref="_leftSidebar" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
+    <LeftSidebar @ref="_leftSidebar" UserId="@_userId" OnNewChat="NewChat" OnConversationSelected="SwitchSession" />
     <div class="chat-main">
         <section class="chat-messages">
             <div class="message-list">

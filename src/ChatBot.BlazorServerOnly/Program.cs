@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using ChatBot.BlazorServerOnly.Components;
+using ChatBot.BlazorServerOnly.Extensions;
 using ChatBot.BlazorServerOnly.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -45,9 +47,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
-app.MapGet("/attachments/{storedFileName}", (string storedFileName, FileUploadStorageService fileUploadStorageService) =>
+app.MapGet("/attachments/{storedFileName}", (string storedFileName, ClaimsPrincipal user, FileUploadStorageService fileUploadStorageService) =>
 {
-    string? filePath = fileUploadStorageService.GetFilePath(storedFileName);
+    string userId = user.GetUserId();
+    if (string.IsNullOrWhiteSpace(userId))
+    {
+        return Results.Forbid();
+    }
+
+    string? filePath = fileUploadStorageService.GetFilePath(userId, storedFileName);
     if (filePath is null)
     {
         return Results.NotFound();

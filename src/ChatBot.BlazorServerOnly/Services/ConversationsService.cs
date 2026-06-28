@@ -5,14 +5,18 @@ namespace ChatBot.BlazorServerOnly.Services;
 
 public class ConversationsService
 {
-    public async Task<List<Conversation>> LoadPreviousConversationsAsync()
+    public async Task<List<Conversation>> LoadPreviousConversationsAsync(string userId)
     {
         List<Conversation> conversations = [];
         string conversationFolder = GetConversationFolder();
         foreach (string conversationFile in Directory.GetFiles(conversationFolder, "*.json"))
         {
             string json = await File.ReadAllTextAsync(conversationFile);
-            conversations.Add(JsonSerializer.Deserialize<Conversation>(json)!);
+            Conversation? conversation = JsonSerializer.Deserialize<Conversation>(json);
+            if (conversation?.UserId == userId)
+            {
+                conversations.Add(conversation);
+            }
         }
         return conversations;
     }

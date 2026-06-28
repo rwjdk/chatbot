@@ -7,17 +7,19 @@ namespace ChatBot.BlazorServerOnly.Models;
 
 public class Conversation
 {
-    public static Conversation NewConversation()
+    public static Conversation NewConversation(string userId)
     {
         return new Conversation
         {
-            Id = Guid.CreateVersion7()
+            Id = Guid.CreateVersion7(),
+            UserId = userId
         };
     }
 
     public List<ConversationMessage> Messages { get; init; } = [];
 
     public required Guid Id { get; init; }
+    public string UserId { get; init; } = string.Empty;
     public string? Title { get; set; }
 
     [JsonIgnore]

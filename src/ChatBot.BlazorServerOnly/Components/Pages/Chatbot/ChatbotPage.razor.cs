@@ -3,11 +3,13 @@ using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
 using Azure.AI.OpenAI;
+using ChatBot.BlazorServerOnly.Extensions;
 using ChatBot.BlazorServerOnly.Models;
 using ChatBot.BlazorServerOnly.Services;
 using ChatBot.BlazorServerOnly.Tools;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.AI;
 using Microsoft.JSInterop;
@@ -22,6 +24,7 @@ public partial class ChatbotPage(
     FileUploadStorageService fileUploadStorageService,
     ConversationChatMessageMapper conversationChatMessageMapper,
     ILocalStorageService localStorageService,
+    AuthenticationStateProvider authenticationStateProvider,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
     private const long MaxAttachmentSize = 20 * 1024 * 1024;
@@ -29,7 +32,8 @@ public partial class ChatbotPage(
     //Input and Conversation
     private string? _input;
     private List<PendingAttachment> _pendingFiles = [];
-    private Conversation _conversation = Conversation.NewConversation();
+    private string _userId = string.Empty;
+    private Conversation _conversation = Conversation.NewConversation(string.Empty);
 
     //Streaming values
     private bool _streaming;
@@ -44,6 +48,9 @@ public partial class ChatbotPage(
 
     protected override async Task OnInitializedAsync()
     {
+        AuthenticationState authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        _userId = authenticationState.User.GetUserId();
+        _conversation = Conversation.NewConversation(_userId);
         _streaming = await localStorageService.GetItemAsync<bool>(LocalStorageKeys.Streaming);
         _imageGenStyle = await localStorageService.GetItemAsync<ImageGenStyle>(LocalStorageKeys.ImageGenStyle);
     }
@@ -104,7 +111,7 @@ public partial class ChatbotPage(
             default:
                 throw new ArgumentOutOfRangeException();
         }
-        
+
         await InvokeAsync(StateHasChanged);
         await conversationsService.StoreConversationAsync(_conversation);
     }
@@ -179,7 +186,7 @@ public partial class ChatbotPage(
 
     private void NewChat()
     {
-        _conversation = Conversation.NewConversation();
+        _conversation = Conversation.NewConversation(_userId);
         ResetMidTurnValues();
     }
 
@@ -226,7 +233,7 @@ public partial class ChatbotPage(
         List<ConversationAttachment> attachments = [];
         foreach (PendingAttachment file in _pendingFiles)
         {
-            attachments.Add(await fileUploadStorageService.SaveAsync(file.FileName, file.ContentType, file.Bytes));
+            attachments.Add(await fileUploadStorageService.SaveAsync(_userId, file.FileName, file.ContentType, file.Bytes));
         }
 
         return attachments;
