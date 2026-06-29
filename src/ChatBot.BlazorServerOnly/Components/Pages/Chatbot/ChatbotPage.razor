@@ -25,6 +25,13 @@
                                 StreamedContents="_streamedContent"
                                 StreamedResponse="@_streamedResponse"
                                 StreamedReasoning="@_streamedReasoning" />
+                
+                @if (_memoryUpdate != null)
+                {
+                    <article class="message-row from-assistant">
+                        <p class="meta-info" style="color: maroon">@_memoryUpdate.GetDisplayString()</p>
+                    </article>
+                }
             </div>
         </section>
 
@@ -66,6 +73,7 @@
         </form>
     </div>
     <RightSidebar Streaming="_streaming"
+                  UserId="@_userId"
                   StreamingChanged="SetStreamingAsync"
                   SelectedImageGenStyle="_imageGenStyle"
                   SelectedImageGenStyleChanged="SetImageGenStyleAsync" />

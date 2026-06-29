@@ -14,6 +14,7 @@ builder.AddServiceDefaults(); //From Aspire Service Defaults
 builder.Services.AddSingleton<ConversationsService>();
 builder.Services.AddSingleton<FileUploadStorageService>();
 builder.Services.AddSingleton<ConversationChatMessageMapper>();
+builder.Services.AddSingleton<UserPersonalizationService>();
 builder.Services.AddLocalStorageServices();
 
 //Auth (Start)

@@ -12,28 +12,9 @@
             <option value="@ImageGenStyle.ImageGenAsTool">ImageGenAsTool</option>
         </select>
     </label>
+    <label class="option-field">
+        <span>Custom Instructions</span>
+        <textarea @bind="_customInstructions" style="min-height: 100px"></textarea>
+        <input type="button" value="Save" @onclick="SaveCustomInstructions"/>
+    </label>
 </aside>
-
-@code {
-    [Parameter]
-    public bool Streaming { get; set; }
-
-    [Parameter]
-    public EventCallback<bool> StreamingChanged { get; set; }
-
-    [Parameter]
-    public ImageGenStyle SelectedImageGenStyle { get; set; }
-
-    [Parameter]
-    public EventCallback<ImageGenStyle> SelectedImageGenStyleChanged { get; set; }
-
-    private Task SetStreamingAsync(bool streaming)
-    {
-        return StreamingChanged.InvokeAsync(streaming);
-    }
-
-    private Task SetImageGenStyleAsync(ImageGenStyle imageGenStyle)
-    {
-        return SelectedImageGenStyleChanged.InvokeAsync(imageGenStyle);
-    }
-}

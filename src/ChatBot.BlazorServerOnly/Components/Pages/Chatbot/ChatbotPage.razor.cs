@@ -1,8 +1,7 @@
-using System.ClientModel;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.OpenAI;
 using AgentFrameworkToolkit.Tools.Common;
-using Azure.AI.OpenAI;
+using ChatBot.BlazorServerOnly.AIContextProviders;
 using ChatBot.BlazorServerOnly.Extensions;
 using ChatBot.BlazorServerOnly.Models;
 using ChatBot.BlazorServerOnly.Services;
@@ -13,7 +12,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.AI;
 using Microsoft.JSInterop;
-using OpenAI.Images;
 
 namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot;
 
@@ -25,6 +23,7 @@ public partial class ChatbotPage(
     ConversationChatMessageMapper conversationChatMessageMapper,
     ILocalStorageService localStorageService,
     AuthenticationStateProvider authenticationStateProvider,
+    UserPersonalizationService userPersonalizationService,
     OpenWeatherMapOptions openWeatherMapOptions)
 {
     private const long MaxAttachmentSize = 20 * 1024 * 1024;
@@ -35,11 +34,14 @@ public partial class ChatbotPage(
     private string _userId = string.Empty;
     private Conversation _conversation = Conversation.NewConversation(string.Empty);
 
-    //Streaming values
+    //Streaming and temp values
     private bool _streaming;
     private string? _streamedResponse;
     private string? _streamedReasoning;
     private List<AIContent> _streamedContent = [];
+    private MemoryUpdate? _memoryUpdate;
+
+    //Options
     private ImageGenStyle _imageGenStyle;
 
     //Components
@@ -76,6 +78,7 @@ public partial class ChatbotPage(
 
         List<ConversationAttachment> attachments = await SavePendingFilesAsync();
         ResetMidTurnValues();
+        _memoryUpdate = null;
         _conversation.AddUserMessage(input, attachments);
         await InvokeAsync(StateHasChanged);
 
@@ -128,6 +131,13 @@ public partial class ChatbotPage(
     private async Task AnswerWithChatbotAsync()
     {
         ImageGenerationTool imageGenerationTool = new(azureOpenAIAgentFactory, _conversation);
+
+        AzureOpenAIAgent memoryExtractorAgent = azureOpenAIAgentFactory.CreateAgent(new AgentOptions
+        {
+            Model = OpenAIChatModels.Gpt41Mini,
+            Instructions = "Look at the user's message and extract any user-facts that we do not already know about the user. Facts are names, places, likes, dislikes, or anything the user prefix with 'Remember this' (or non if there aren't any memories to store)"
+        });
+
         AzureOpenAIAgent agent = azureOpenAIAgentFactory.CreateAgent(new AgentOptions
         {
             ClientType = ClientType.ResponsesApi,
@@ -135,9 +145,10 @@ public partial class ChatbotPage(
             ReasoningEffort = OpenAIReasoningEffort.Medium,
             ReasoningSummaryVerbosity = OpenAIReasoningSummaryVerbosity.Detailed,
             Tools = [WeatherTools.GetWeatherForCity(openWeatherMapOptions), AIFunctionFactory.Create(imageGenerationTool.GenerateImageAsync, "generate_image")],
-            Instructions = "You are a chatbot answering questions"
+            Instructions = "You are a chatbot answering questions",
+            AIContextProviders = [new PersonalizationContextProvider(memoryExtractorAgent, _userId, userPersonalizationService, MemoryUpdateNotificationAsync)]
         });
-
+        
         if (!_streaming)
         {
             await GenerateNonStreamingResponseAsync(agent);
@@ -146,6 +157,12 @@ public partial class ChatbotPage(
         {
             await GenerateStreamingResponseAsync(agent);
         }
+    }
+
+    private async Task MemoryUpdateNotificationAsync(MemoryUpdate obj)
+    {
+        _memoryUpdate = obj;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task GenerateNonStreamingResponseAsync(AzureOpenAIAgent agent)
@@ -188,12 +205,14 @@ public partial class ChatbotPage(
     {
         _conversation = Conversation.NewConversation(_userId);
         ResetMidTurnValues();
+        _memoryUpdate = null;
     }
 
     private void SwitchSession(Conversation conversation)
     {
         _conversation = conversation;
         ResetMidTurnValues();
+        _memoryUpdate = null;
     }
 
     private async Task SetStreamingAsync(bool streaming)
