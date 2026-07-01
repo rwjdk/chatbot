@@ -264,6 +264,32 @@ h1:focus {
     display: none;
 }
 
+.voice-input-button {
+    flex: 0 0 58px;
+    min-height: 72px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 10px;
+    background: #374151;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.voice-input-button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.audio-input-error {
+    margin: 0;
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
 .pending-attachments,
 .message-attachments {
     display: flex;

@@ -6,12 +6,15 @@ using ChatBot.BlazorServerOnly.Extensions;
 using ChatBot.BlazorServerOnly.Models;
 using ChatBot.BlazorServerOnly.Services;
 using ChatBot.BlazorServerOnly.Tools;
+using Azure.AI.OpenAI;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.AI;
 using Microsoft.JSInterop;
+using OpenAI.Audio;
+using System.ClientModel;
 
 namespace ChatBot.BlazorServerOnly.Components.Pages.Chatbot;
 
@@ -24,7 +27,8 @@ public partial class ChatbotPage(
     ILocalStorageService localStorageService,
     AuthenticationStateProvider authenticationStateProvider,
     UserPersonalizationService userPersonalizationService,
-    OpenWeatherMapOptions openWeatherMapOptions)
+    OpenWeatherMapOptions openWeatherMapOptions,
+    IJSRuntime jsRuntime) : IAsyncDisposable
 {
     private const long MaxAttachmentSize = 20 * 1024 * 1024;
 
@@ -40,6 +44,8 @@ public partial class ChatbotPage(
     private string? _streamedReasoning;
     private List<AIContent> _streamedContent = [];
     private MemoryUpdate? _memoryUpdate;
+    private bool _isRecordingAudio;
+    private bool _isTranscribingAudio;
 
     //Options
     private ImageGenStyle _imageGenStyle;
@@ -47,6 +53,7 @@ public partial class ChatbotPage(
     //Components
     private Components.LeftSidebar? _leftSidebar;
     private bool _inImageGenerationMode;
+     private IJSObjectReference? _audioRecorderModule;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,7 +155,7 @@ public partial class ChatbotPage(
             Instructions = "You are a chatbot answering questions",
             AIContextProviders = [new PersonalizationContextProvider(memoryExtractorAgent, _userId, userPersonalizationService, MemoryUpdateNotificationAsync)]
         });
-        
+
         if (!_streaming)
         {
             await GenerateNonStreamingResponseAsync(agent);
@@ -247,6 +254,56 @@ public partial class ChatbotPage(
         _pendingFiles = pendingFiles;
     }
 
+    private async Task ToggleRecordingAsync()
+    {
+        _audioRecorderModule ??= await jsRuntime.InvokeAsync<IJSObjectReference>("import", "/chatbotAudioRecorder.js");
+
+        if (!_isRecordingAudio)
+        {
+            //Start Recording
+            await _audioRecorderModule.InvokeVoidAsync("startRecording");
+            _isRecordingAudio = true;
+        }
+        else
+        {
+            //Stop Recording (and transcribe)
+            _isTranscribingAudio = true;
+            try
+            {
+                RecordedAudio? recordedAudio = await _audioRecorderModule.InvokeAsync<RecordedAudio?>("stopRecording");
+                _isRecordingAudio = false;
+
+                if (recordedAudio is null)
+                {
+                }
+                else
+                {
+                    IJSStreamReference audioStreamReference = await _audioRecorderModule.InvokeAsync<IJSStreamReference>("getRecordedAudioStream");
+                    await using Stream audioStream = await audioStreamReference.OpenReadStreamAsync();
+                    
+                    AzureOpenAIClient client = azureOpenAIAgentFactory.Connection.GetClient();
+                    AudioClient audioClient = client.GetAudioClient("gpt-4o-mini-transcribe");
+
+                    ClientResult<AudioTranscription> audioTranscription = await audioClient.TranscribeAudioAsync(
+                        audioStream,
+                        recordedAudio.FileName,
+                        new AudioTranscriptionOptions());
+
+                    string transcription = audioTranscription.Value.Text.Trim();
+
+                    _input = string.IsNullOrWhiteSpace(_input)
+                        ? transcription
+                        : $"{_input.TrimEnd()} {transcription}";
+                }
+            }
+            finally
+            {
+                _isRecordingAudio = false;
+                _isTranscribingAudio = false;
+            }
+        }
+    }
+    
     private async Task<List<ConversationAttachment>> SavePendingFilesAsync()
     {
         List<ConversationAttachment> attachments = [];
@@ -283,11 +340,37 @@ public partial class ChatbotPage(
         _inImageGenerationMode = false;
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_audioRecorderModule is not null)
+            {
+                if (_isRecordingAudio)
+                {
+                    await _audioRecorderModule.InvokeVoidAsync("cancelRecording");
+                }
+
+                await _audioRecorderModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            //Empty
+        }
+    }
+
     private sealed class PendingAttachment(string fileName, string contentType, byte[] bytes, string? previewDataUri)
     {
         public string FileName { get; } = fileName;
         public string ContentType { get; } = contentType;
         public byte[] Bytes { get; } = bytes;
         public string? PreviewDataUri { get; } = previewDataUri;
+    }
+
+    [UsedImplicitly]
+    private sealed class RecordedAudio
+    {
+        public string FileName { get; [UsedImplicitly] set; } = string.Empty;
     }
 }

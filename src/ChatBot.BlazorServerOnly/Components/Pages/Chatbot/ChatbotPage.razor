@@ -62,6 +62,12 @@
                                accept="application/pdf,image/*"
                                multiple />
                 </label>
+                <button class="voice-input-button"
+                        type="button"
+                        disabled="@_isTranscribingAudio"
+                        @onclick="ToggleRecordingAsync">
+                    @(_isTranscribingAudio ? "..." : _isRecordingAudio ? "Stop" : "Mic")
+                </button>
                 <textarea @bind="_input"
                           @bind:event="oninput"
                           rows="3"
